@@ -49,3 +49,42 @@ line_from_song = types.KeyboardButton('Угадать песню строчке'
 weather_key = types.KeyboardButton('Узнать погоду в моем городе')
 create_level = types.KeyboardButton('Создать свой вопрос')
 markup.add(film_photo, film_phrase, line_from_song, weather_key, create_level)
+
+create_markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=True)
+create_phrase = types.KeyboardButton('Фильм по фразе')
+create_song = types.KeyboardButton('Песня по строчке')
+create_markup.add(create_phrase, create_song)
+
+# Списки с количеством правильных и неправильных ответов
+wrong_answers_count = []
+correct_answers_count = []
+
+# Режим (Используется дальше)
+mode = ['0']
+
+# Имя пользователя (Используется дальше)
+USERNAME = ['0']
+
+
+# Запуск бота, который спросит у пользователя имя
+@bot.message_handler(commands=['start'])
+def start(message):
+    sent = bot.send_message(message.chat.id, 'Как Вас зовут?')
+    bot.register_next_step_handler(sent, start_next)
+
+
+# Берет данные из таблицы, открывает клавиатуру с выбором режима и здоровается с пользователем
+@bot.message_handler(commands=['next'])
+def start_next(message):
+    USERNAME.append(message.text)
+    if USERNAME[-1] == '/next' or USERNAME[-1] == 'Угадать фильм по фразе' or USERNAME[-1] == 'Угадать фильм по кадру' \
+            or USERNAME[-1] == 'Угадать песню строчке' or USERNAME[-1] == 'Узнать погоду в моем городе':
+        USERNAME[-1] = 'noname'
+    hello_name = f'Привет, <b>{USERNAME[-1]}</b>!\nВыберите режим из предложенных. \n\n' \
+                 f'Угадать фильм по фразе (Сложность: сложно) \n' \
+                 f'Угадать фильм по кадру (Сложность: нормально) \n' \
+                 f'Угадать песню строчке (Сложность: нормально)\n' \
+                 f'Узнать погоду в вашем городе (Рекомендуется)\n\n' \
+                 f'Создать свой уровень <b>(Только для администраторов!)</b>'
+    start_hello = bot.send_message(message.chat.id, f'{hello_name} ', parse_mode='html', reply_markup=markup)
+    bot.register_next_step_handler(start_hello, mode_selection)
