@@ -399,3 +399,165 @@ def next_quest_song(message):
         bot.answer_callback_query(message.id, text="")
         bot.register_next_step_handler(sent, start)
 
+
+# Обработка ответа пользователя на вопрос для каждого из режимов
+@bot.callback_query_handler(func=lambda callback: callback.data)
+def func_callback(callback):
+    if int(callback.data) != 5:
+        # Проверяет режим на "Угадать фильм по фото"
+        if mode[-1] == 'photo':
+            user_answer = all_with_photo[0][2]
+            if int(callback.data) == int(user_answer):
+                correct_answers_count.append(1)
+            else:
+                wrong_answers_count.append(1)
+
+            # Удаляет прошлый вопрос
+            next_quest_photo(callback.message)
+
+            # Обновление Inline клавиатуры
+            next_film = types.InlineKeyboardMarkup(row_width=1)
+
+            next_answer1 = types.InlineKeyboardButton(text=f"{all_with_photo[0][1].split('@')[0]}", callback_data=1)
+            next_answer2 = types.InlineKeyboardButton(text=f"{all_with_photo[0][1].split('@')[1]}", callback_data=2)
+            next_answer3 = types.InlineKeyboardButton(text=f"{all_with_photo[0][1].split('@')[2]}", callback_data=3)
+            next_answer4 = types.InlineKeyboardButton(text=f"{all_with_photo[0][1].split('@')[3]}", callback_data=4)
+            back = types.InlineKeyboardButton(text="Вернуться назад", callback_data=5)
+
+            next_film.add(next_answer1, next_answer2, next_answer3, next_answer4, back)
+
+            photo_file = open(all_with_photo[0][3], 'rb')
+
+            # Сравнивает ответ пользователя с правильным
+            if int(callback.data) == int(user_answer):
+                bot.edit_message_media(media=types.InputMedia(type='photo', media=photo_file,
+                                                              caption=f'<b>Верно!</b>\n'
+                                                                      f'Правильных ответов: '
+                                                                      f'{len(correct_answers_count)}\n'
+                                                                      f'Ошибок: {len(wrong_answers_count)}\n'
+                                                                      f'Осталось вопросов: {len(all_with_photo)}\n'
+                                                                      f'Из какого фильма этот взят кадр?',
+                                                              parse_mode='html'),
+                                       chat_id=callback.message.chat.id, message_id=callback.message.id,
+                                       reply_markup=next_film)
+
+            else:
+                bot.edit_message_media(media=types.InputMedia(type='photo', media=photo_file,
+                                                              caption=f'<b>Неверный ответ.</b>\n'
+                                                                      f'Правильных ответов: '
+                                                                      f'{len(correct_answers_count)}\n'
+                                                                      f'Ошибок: {len(wrong_answers_count)}\n'
+                                                                      f'Осталось вопросов: {len(all_with_photo)}\n'
+                                                                      f'Из какого фильма этот взят кадр?',
+                                                              parse_mode='html'),
+                                       chat_id=callback.message.chat.id, message_id=callback.message.id,
+                                       reply_markup=next_film)
+
+        # Проверка режима на "Угадать фильм по фразе"
+        elif mode[-1] == 'phrase':
+            user_answer = all_with_phrase[0][2]
+            if int(callback.data) == int(user_answer):
+                correct_answers_count.append(1)
+            else:
+                wrong_answers_count.append(1)
+
+            # Удаляет прошлый вопрос
+            next_quest_phrase(callback.message)
+
+            # Обновление Inline клавиатуры
+            next_phrase = types.InlineKeyboardMarkup(row_width=1)
+
+            next_answer1 = types.InlineKeyboardButton(text=f"{all_with_phrase[0][1].split('@')[0]}", callback_data=1)
+            next_answer2 = types.InlineKeyboardButton(text=f"{all_with_phrase[0][1].split('@')[1]}", callback_data=2)
+            next_answer3 = types.InlineKeyboardButton(text=f"{all_with_phrase[0][1].split('@')[2]}", callback_data=3)
+            next_answer4 = types.InlineKeyboardButton(text=f"{all_with_phrase[0][1].split('@')[3]}", callback_data=4)
+            back = types.InlineKeyboardButton(text="Вернуться назад", callback_data=5)
+
+            next_phrase.add(next_answer1, next_answer2, next_answer3, next_answer4, back)
+
+            # Сравнивает ответ пользователя с правильным
+            if int(callback.data) == int(user_answer):
+                bot.edit_message_text(
+                    chat_id=callback.message.chat.id,
+                    message_id=callback.message.id,
+                    text=f'<b>Верно!</b>\n'
+                         f'Правильных ответов: {len(correct_answers_count)}\n'
+                         f'Ошибок: {len(wrong_answers_count)}\n'
+                         f'Осталось вопросов: {len(all_with_phrase)}\n'
+                         f'<b>Из какого фильма эта фраза?</b>\n\n'
+                         f'{all_with_phrase[0][3]}',
+                    reply_markup=next_phrase, parse_mode='html')
+
+            else:
+                bot.edit_message_text(
+                    chat_id=callback.message.chat.id,
+                    message_id=callback.message.id,
+                    text=f'<b>Неверный ответ.</b>\n'
+                         f'Правильных ответов: {len(correct_answers_count)}\n'
+                         f'Ошибок: {len(wrong_answers_count)}\n'
+                         f'Осталось вопросов: {len(all_with_phrase)}\n'
+                         f'<b>Из какого фильма эта фраза?</b>\n\n'
+                         f'{all_with_phrase[0][3]}', parse_mode='html',
+                    reply_markup=next_phrase)
+
+        # Проверка режима на "Угадать песню по строчке"
+        elif mode[-1] == 'song':
+            user_answer = all_songs[0][2]
+            if int(callback.data) == int(user_answer):
+                correct_answers_count.append(1)
+            else:
+                wrong_answers_count.append(1)
+
+            # Удаляет прошлый вопрос
+            next_quest_song(callback.message)
+
+            # Обновление Inline клавиатуры
+            next_song = types.InlineKeyboardMarkup(row_width=1)
+
+            next_answer1 = types.InlineKeyboardButton(text=f"{all_songs[0][1].split('@')[0]}", callback_data=1)
+            next_answer2 = types.InlineKeyboardButton(text=f"{all_songs[0][1].split('@')[1]}", callback_data=2)
+            next_answer3 = types.InlineKeyboardButton(text=f"{all_songs[0][1].split('@')[2]}", callback_data=3)
+            next_answer4 = types.InlineKeyboardButton(text=f"{all_songs[0][1].split('@')[3]}", callback_data=4)
+            back = types.InlineKeyboardButton(text="Вернуться назад", callback_data=5)
+
+            next_song.add(next_answer1, next_answer2, next_answer3, next_answer4, back)
+
+            # Сравнивает ответ пользователя с правильным
+            if int(callback.data) == int(user_answer):
+                bot.edit_message_text(
+                    chat_id=callback.message.chat.id,
+                    message_id=callback.message.id,
+                    text=f'<b>Верно!</b>\n'
+                         f'Правильных ответов: {len(correct_answers_count)}\n'
+                         f'Ошибок: {len(wrong_answers_count)}\n'
+                         f'Осталось вопросов: {len(all_songs)}\n'
+                         f'<b>Из какой песни эта строчка?</b>\n\n'
+                         f'{all_songs[0][3]}',
+                    reply_markup=next_song, parse_mode='html')
+
+            else:
+                bot.edit_message_text(
+                    chat_id=callback.message.chat.id,
+                    message_id=callback.message.id,
+                    text=f'<b>Неверный ответ.</b>\n'
+                         f'Правильных ответов: {len(correct_answers_count)}\n'
+                         f'Ошибок: {len(wrong_answers_count)}\n'
+                         f'Осталось вопросов: {len(all_songs)}\n'
+                         f'<b>Из какой песни эта строчка?</b>\n\n'
+                         f'{all_songs[0][3]}', parse_mode='html',
+                    reply_markup=next_song)
+
+    else:
+        bot.delete_message(callback.message.chat.id, callback.message.id)
+        sent = bot.send_message(callback.message.chat.id, 'Вы вернулись назад.', parse_mode='html', reply_markup=markup)
+        bot.register_next_step_handler(sent, mode_selection)
+
+
+# Обрабатывает неизвестный ввод
+@bot.message_handler(content_types=["text"])
+def repeat_all_messages(message):
+    bot.send_message(message.chat.id, 'Ну вот, ты все сломал. Пиши /next')
+
+
+# Запуск и бесконечная работа бота
+bot.polling(none_stop=True)
