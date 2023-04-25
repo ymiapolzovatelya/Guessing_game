@@ -199,3 +199,132 @@ def mode_selection(message):
                                     reply_markup=markup)
             bot.register_next_step_handler(sent, mode_selection)
 
+
+# Обработка выбора режима создания пользователем
+def choose_create_the_level_phrase_or_song(message):
+    if message.text.lower() == 'фильм по фразе':
+        sent = bot.send_message(message.chat.id, 'Введите фразу из фильма:')
+        bot.register_next_step_handler(sent, create_the_level_phrase)
+    elif message.text.lower() == 'песня по строчке':
+        sent = bot.send_message(message.chat.id, 'Введите строчку из песни:')
+        bot.register_next_step_handler(sent, create_the_level_song)
+
+
+# Добавляет фразу, введённую пользователем, в базу данных,
+# а затем просит его ввести варианты ответа и записывает их в бд
+def create_the_level_phrase(message):
+    try:
+        global count_id_phrase
+        count_id_phrase = list(cur.execute("""SELECT COUNT(id) FROM films_phrase_questions"""))
+        for i in count_id_phrase[0]:
+            count_id_phrase = i
+        count_id_phrase += 1
+        cur.execute(f"""INSERT INTO films_phrase_questions (id, phrase) 
+                        VALUES ({count_id_phrase}, '{message.text}')""").fetchall()
+        conn.commit()
+        sent = bot.send_message(message.chat.id, 'Хорошо. Теперь напишите варианты ответов.\nКаждый вариант записывайте '
+                                                 'через знак "%"\n'
+                                                 'Пример:\nМадагаскар%Форест Гамп%Зеленая миля%Майнкрафт')
+        bot.register_next_step_handler(sent, create_the_level_phrase_all_answers)
+    except Exception:
+        sent = bot.send_message(message.chat.id, 'Что-то пошло не так. Выберите режим еще раз', reply_markup=markup)
+        bot.register_next_step_handler(sent, mode_selection)
+
+
+# Показывает пользователю результат записи, а затем спрашивает правильный ответ и записывает его в бд
+def create_the_level_phrase_all_answers(message):
+    try:
+        global count_id_phrase
+        answers = message.text.split('%')
+        cur.execute(f"""UPDATE films_phrase_questions 
+                        SET answer_options = '1.{answers[0]}@2.{answers[1]}@3.{answers[2]}@4.{answers[3]}'
+                        WHERE id = {count_id_phrase}""").fetchall()
+        conn.commit()
+        sent = bot.send_message(message.chat.id,
+                                f'Отлично.\n'
+                                f'Вот что получилось:\n\n'
+                                f'1.{answers[0]}\n'
+                                f'2.{answers[1]}\n'
+                                f'3.{answers[2]}\n'
+                                f'4.{answers[3]}\n\n'
+                                f'А теперь введите номер правильного ответа')
+        bot.register_next_step_handler(sent, create_the_level_phrase_ans_and_success)
+    except Exception:
+        sent = bot.send_message(message.chat.id, 'Что-то пошло не так. Выберите режим еще раз', reply_markup=markup)
+        bot.register_next_step_handler(sent, mode_selection)
+
+
+# Сообщает пользователю об успешном создание вопроса
+def create_the_level_phrase_ans_and_success(message):
+    try:
+        global count_id_phrase
+        cur.execute(f"""UPDATE films_phrase_questions 
+                        SET correct_answer = {int(message.text)}
+                        WHERE id = {count_id_phrase}""")
+        conn.commit()
+        sent = bot.send_message(message.chat.id, 'Вопрос создан! Он появился в списке вопросов. А теперь выбирайте режим!',
+                                reply_markup=markup)
+        bot.register_next_step_handler(sent, mode_selection)
+    except Exception:
+        sent = bot.send_message(message.chat.id, 'Что-то пошло не так. Выберите режим еще раз', reply_markup=markup)
+        bot.register_next_step_handler(sent, mode_selection)
+
+
+# Добавляет строку, введённую пользователем, в базу данных,
+# а затем просит его ввести варианты ответа и записывает их в бд
+def create_the_level_song(message):
+    try:
+        global count_id_songs
+        count_id_songs = list(cur.execute("""SELECT COUNT(id) FROM line_from_songs_questions"""))
+        for i in count_id_songs[0]:
+            count_id_songs = i
+        count_id_songs += 1
+        cur.execute(f"""INSERT INTO line_from_songs_questions (id, line) 
+                            VALUES ({count_id_songs}, '{message.text}')""").fetchall()
+        conn.commit()
+        sent = bot.send_message(message.chat.id, 'Хорошо. Теперь напишите варианты ответов.\nКаждый вариант записывайте '
+                                                 'через знак "%"\n'
+                                                 'Пример:\nТёплый ужин%Голая%Когда-нибудь%Девочка-деньги')
+        bot.register_next_step_handler(sent, create_the_level_songs_all_answers)
+    except Exception:
+        sent = bot.send_message(message.chat.id, 'Что-то пошло не так. Выберите режим еще раз', reply_markup=markup)
+        bot.register_next_step_handler(sent, mode_selection)
+
+
+# Показывает пользователю результат записи, а затем спрашивает правильный ответ и записывает его в бд
+def create_the_level_songs_all_answers(message):
+    try:
+        global count_id_songs
+        answers = message.text.split('%')
+        cur.execute(f"""UPDATE line_from_songs_questions 
+                            SET answer_options = '1.{answers[0]}@2.{answers[1]}@3.{answers[2]}@4.{answers[3]}'
+                            WHERE id = {count_id_songs}""").fetchall()
+        conn.commit()
+        sent = bot.send_message(message.chat.id,
+                                f'Отлично.\n'
+                                f'Вот что получилось:\n\n'
+                                f'1.{answers[0]}\n'
+                                f'2.{answers[1]}\n'
+                                f'3.{answers[2]}\n'
+                                f'4.{answers[3]}\n\n'
+                                f'А теперь введите номер правильного ответа')
+        bot.register_next_step_handler(sent, create_the_level_songs_ans_and_success)
+    except Exception:
+        sent = bot.send_message(message.chat.id, 'Что-то пошло не так. Выберите режим еще раз', reply_markup=markup)
+        bot.register_next_step_handler(sent, mode_selection)
+
+
+# Сообщает пользователю об успешном создание вопроса
+def create_the_level_songs_ans_and_success(message):
+    try:
+        global count_id_songs
+        cur.execute(f"""UPDATE line_from_songs_questions 
+                            SET correct_answer = {int(message.text)}
+                            WHERE id = {count_id_songs}""")
+        conn.commit()
+        sent = bot.send_message(message.chat.id, 'Вопрос создан! Он появился в списке вопросов. А теперь выбирайте режим!',
+                                reply_markup=markup)
+        bot.register_next_step_handler(sent, mode_selection)
+    except Exception:
+        sent = bot.send_message(message.chat.id, 'Что-то пошло не так. Выберите режим еще раз', reply_markup=markup)
+        bot.register_next_step_handler(sent, mode_selection)
