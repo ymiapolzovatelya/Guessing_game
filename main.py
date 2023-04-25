@@ -88,3 +88,114 @@ def start_next(message):
                  f'Создать свой уровень <b>(Только для администраторов!)</b>'
     start_hello = bot.send_message(message.chat.id, f'{hello_name} ', parse_mode='html', reply_markup=markup)
     bot.register_next_step_handler(start_hello, mode_selection)
+
+# Действия, которые будут совершены после выбора режима пользователем
+def mode_selection(message):
+    global all_with_photo, all_with_phrase, all_songs, admins
+
+    admins_db = cur.execute("""SELECT * FROM admins""").fetchall()
+    admins_db = list(admins_db)
+    admins = {}
+    for admins_id, admins_nick in admins_db:
+        admins[admins_id] = admins_nick
+
+    # Очищает списки ответов, для выбора другого режима
+    wrong_answers_count.clear()
+    correct_answers_count.clear()
+
+    # Клавиатура для режима "Фильм по кадру"
+    if message.text.lower() == 'угадать фильм по кадру':
+
+        all_with_photo = cur.execute("""SELECT * FROM films_photo_questions""").fetchall()
+        all_with_photo = list(all_with_photo)
+
+        mode.append('photo')
+
+        # Перемешивание списка вопросов
+        random.shuffle(all_with_photo)
+
+        # Создание Inline клавиатуры
+        photo_markup = types.InlineKeyboardMarkup(row_width=1)
+
+        add1 = types.InlineKeyboardButton(text=f"{all_with_photo[0][1].split('@')[0]}", callback_data=1)
+        add2 = types.InlineKeyboardButton(text=f"{all_with_photo[0][1].split('@')[1]}", callback_data=2)
+        add3 = types.InlineKeyboardButton(text=f"{all_with_photo[0][1].split('@')[2]}", callback_data=3)
+        add4 = types.InlineKeyboardButton(text=f"{all_with_photo[0][1].split('@')[3]}", callback_data=4)
+        back = types.InlineKeyboardButton(text="Вернуться назад", callback_data=5)
+
+        photo_markup.add(add1, add2, add3, add4, back)
+
+        photo_file = open(all_with_photo[0][3], 'rb')
+
+        bot.send_photo(message.chat.id, photo_file, caption='Из какого фильма этот кадр?',
+                       reply_markup=photo_markup)
+
+    # Клавиатура для режима "Фильм по фразе"
+    elif message.text.lower() == 'угадать фильм по фразе':
+
+        all_with_phrase = cur.execute("""SELECT * FROM films_phrase_questions""").fetchall()
+        all_with_phrase = list(all_with_phrase)
+
+        mode.append('phrase')
+
+        # Перемешивание списка вопросов
+        random.shuffle(all_with_phrase)
+
+        # Создание Inline клавиатуры
+        phrase_markup = types.InlineKeyboardMarkup(row_width=1)
+
+        add1 = types.InlineKeyboardButton(text=f"{all_with_phrase[0][1].split('@')[0]}", callback_data=1)
+        add2 = types.InlineKeyboardButton(text=f"{all_with_phrase[0][1].split('@')[1]}", callback_data=2)
+        add3 = types.InlineKeyboardButton(text=f"{all_with_phrase[0][1].split('@')[2]}", callback_data=3)
+        add4 = types.InlineKeyboardButton(text=f"{all_with_phrase[0][1].split('@')[3]}", callback_data=4)
+        back = types.InlineKeyboardButton(text="Вернуться назад", callback_data=5)
+
+        phrase_markup.add(add1, add2, add3, add4, back)
+
+        bot.send_message(message.chat.id, f'Из какого фильма эта фраза?\n\n<b>{all_with_phrase[0][3]}</b>',
+                         parse_mode='html',
+                         reply_markup=phrase_markup)
+
+    # Клавиатура для режима "Песня по строчке"
+    elif message.text.lower() == 'угадать песню строчке':
+
+        all_songs = cur.execute("""SELECT * FROM line_from_songs_questions""").fetchall()
+        all_songs = list(all_songs)
+
+        mode.append('song')
+
+        # Перемешивание списка вопросов
+        random.shuffle(all_songs)
+
+        # Создание Inline клавиатуры
+        songs_markup = types.InlineKeyboardMarkup(row_width=1)
+
+        add1 = types.InlineKeyboardButton(text=f"{all_songs[0][1].split('@')[0]}", callback_data=1)
+        add2 = types.InlineKeyboardButton(text=f"{all_songs[0][1].split('@')[1]}", callback_data=2)
+        add3 = types.InlineKeyboardButton(text=f"{all_songs[0][1].split('@')[2]}", callback_data=3)
+        add4 = types.InlineKeyboardButton(text=f"{all_songs[0][1].split('@')[3]}", callback_data=4)
+        back = types.InlineKeyboardButton(text="Вернуться назад", callback_data=5)
+
+        songs_markup.add(add1, add2, add3, add4, back)
+
+        bot.send_message(message.chat.id, f'Из какого фильма эта фраза?\n\n<b>{all_songs[0][3]}</b>',
+                         parse_mode='html',
+                         reply_markup=songs_markup)
+
+    # Спрашивает пользователя о его месте проживание
+    elif message.text.lower() == 'узнать погоду в моем городе':
+        sent = bot.send_message(message.chat.id, 'В каком городе вы проживаете?')
+        bot.register_next_step_handler(sent, check_the_weather)
+
+    # Создание уровней (только администраторам)
+    elif message.text.lower() == 'создать свой уровень':
+        if message.from_user.id in admins:
+            sent = bot.send_message(message.chat.id, f'<b>Здравствуйте, {admins[message.from_user.id]}.\n</b>'
+                                                     f'Выберите, в каком режиме нужно создать уровень',
+                                    parse_mode='html', reply_markup=create_markup)
+            bot.register_next_step_handler(sent, choose_create_the_level_phrase_or_song)
+        else:
+            sent = bot.send_message(message.chat.id, '<b>У вас недостаточно прав.</b>', parse_mode='html',
+                                    reply_markup=markup)
+            bot.register_next_step_handler(sent, mode_selection)
+
