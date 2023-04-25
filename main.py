@@ -328,3 +328,74 @@ def create_the_level_songs_ans_and_success(message):
     except Exception:
         sent = bot.send_message(message.chat.id, 'Что-то пошло не так. Выберите режим еще раз', reply_markup=markup)
         bot.register_next_step_handler(sent, mode_selection)
+
+# Определяет погоду в ведённом городе
+def check_the_weather(message):
+    try:
+        mode_list = ['угадывать фильмы по фразе', 'угадывать фильмы по кадру', 'угадывать песни по строчке']
+        random.shuffle(mode_list)
+        weather_now = current_weather(message.text).get('weather')[0]['description']
+        temp_now = current_weather(message.text)['main']['temp']
+        sent = bot.send_message(message.chat.id, f'В вашем городе сейчас <b>{weather_now}.</b>\n'
+                                                 f'Градусов за окном: {round(temp_now)}\n\n'
+                                                 f'В такую погоду лучше всего <b>{mode_list[0]}!</b>',
+                                parse_mode='html',
+                                reply_markup=markup)
+        bot.register_next_step_handler(sent, mode_selection)
+
+    except Exception:
+        sent = bot.send_message(message.chat.id, f'<b>Я не знаю такого города. Выберите режим</b>',
+                                parse_mode='html',
+                                reply_markup=markup)
+        bot.register_next_step_handler(sent, mode_selection)
+
+
+# Удаляет вопрос с фото, после получения на него ответа.
+# Если вопросы кончаются, бот выдает сообщение об окончании игры
+def next_quest_photo(message):
+    if len(all_with_photo) > 1:
+        all_with_photo.pop(0)
+    else:
+        photo_file = open('data/pics/the_end.png', 'rb')
+        sent = bot.edit_message_media(media=types.InputMedia(type='photo', media=photo_file,
+                                                             caption=f'<b>Игра окончена</b>\n'
+                                                                     f'Правильных ответов: {len(correct_answers_count)}'
+                                                                     f'\nОшибок: {len(wrong_answers_count)}\n'
+                                                                     f'Пиши /next для выбора режима.',
+                                                             parse_mode='html'),
+                                      chat_id=message.chat.id, message_id=message.id)
+        bot.answer_callback_query(message.id, text="")
+        bot.register_next_step_handler(sent, start)
+
+
+# Удаляет вопрос с фразой, после получения на него ответа.
+# Если вопросы кончаются, бот выдает сообщение об окончании игры
+def next_quest_phrase(message):
+    if len(all_with_phrase) > 1:
+        all_with_phrase.pop(0)
+    else:
+        sent = bot.edit_message_text(text=f'<b>Игра окончена</b>\n'
+                                          f'Правильных ответов: {len(correct_answers_count)}\n'
+                                          f'Ошибок: {len(wrong_answers_count)}\n'
+                                          f'Пиши /next для выбора режима.', parse_mode='html',
+                                     chat_id=message.chat.id,
+                                     message_id=message.id)
+        bot.answer_callback_query(message.id, text="")
+        bot.register_next_step_handler(sent, start)
+
+
+# Удаляет вопрос со строкой из песни, после получения на него ответа.
+# Если вопросы кончаются, бот выдает сообщение об окончании игры
+def next_quest_song(message):
+    if len(all_songs) > 1:
+        all_songs.pop(0)
+    else:
+        sent = bot.edit_message_text(text=f'<b>Игра окончена</b>\n'
+                                          f'Правильных ответов: {len(correct_answers_count)}\n'
+                                          f'Ошибок: {len(wrong_answers_count)}\n'
+                                          f'Пиши /next для выбора режима.', parse_mode='html',
+                                     chat_id=message.chat.id,
+                                     message_id=message.id)
+        bot.answer_callback_query(message.id, text="")
+        bot.register_next_step_handler(sent, start)
+
